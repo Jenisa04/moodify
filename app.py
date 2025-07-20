@@ -18,7 +18,9 @@ def is_placeholder(url: str | None) -> bool:
     return (not url) or "data:image" in url
 
 def create_result_card(emotion, track_name, artist_name, thumbnail_url) -> BytesIO:
-    """Generate an Instagram-worthy result card image."""
+    """Generate a polished, Instagram-ready result card image with dynamic text scaling."""
+    from PIL import ImageOps
+
     # Define mood-based gradient colors
     gradients = {
         "happy": ((255, 223, 88), (255, 140, 0)),      # yellow to orange
@@ -33,41 +35,77 @@ def create_result_card(emotion, track_name, artist_name, thumbnail_url) -> Bytes
     img = Image.new("RGB", (1080, 1920), color=color_start)
     draw = ImageDraw.Draw(img)
 
-    # Apply gradient
+    # Apply gradient background
     for y in range(img.height):
         r = int(color_start[0] + (color_end[0] - color_start[0]) * y / img.height)
         g = int(color_start[1] + (color_end[1] - color_start[1]) * y / img.height)
         b = int(color_start[2] + (color_end[2] - color_start[2]) * y / img.height)
         draw.line([(0, y), (img.width, y)], fill=(r, g, b))
 
-    # Fonts (fallback if arial not available)
+    # Helper: Adjust font size to fit width
+    def fit_text(text, max_width, base_size):
+        size = base_size
+        while size > 20:  # Minimum font size
+            try:
+                font = ImageFont.truetype("arial.ttf", size)
+            except:
+                font = None  # fallback to default
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            if text_width <= max_width:
+                return font
+            size -= 5
+        return font
+
+    # Fonts
+    font_mood = fit_text(f"{emotion.title()} 🎭", 1000, 160)      # Big mood text
+    font_song = fit_text(f"🎵 {track_name}", 950, 100)            # Song title
+    font_artist = fit_text(f"by {artist_name}", 950, 70)          # Artist name
     try:
-        font_large = ImageFont.truetype("arial.ttf", 120)
-        font_medium = ImageFont.truetype("arial.ttf", 60)
-        font_small = ImageFont.truetype("arial.ttf", 40)
+        font_small = ImageFont.truetype("arial.ttf", 50)          # Branding
     except:
-        font_large = font_medium = font_small = None
+        font_small = None
 
-    # Add mood text
-    draw.text((50, 100), f"{emotion.title()}", fill="white", font=font_large)
+    # Centered Mood Text
+    mood_text = f"{emotion.title()}"
+    bbox = draw.textbbox((0, 0), mood_text, font=font_mood)
+    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text(((img.width - w) / 2, 150), mood_text, fill="white", font=font_mood)
 
-    # Add playlist thumbnail (circular)
+    # Playlist thumbnail (circular with black border)
     try:
         response = requests.get(thumbnail_url, timeout=10)
         playlist_img = Image.open(BytesIO(response.content)).resize((700, 700)).convert("RGBA")
+
+        # Add circular mask
         mask = Image.new("L", playlist_img.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.ellipse((0, 0, playlist_img.size[0], playlist_img.size[1]), fill=255)
-        img.paste(playlist_img, (190, 500), mask=mask)
+
+        # Apply mask and border
+        playlist_img.putalpha(mask)
+        bordered_img = ImageOps.expand(playlist_img, border=20, fill="black")
+
+        # Paste onto base
+        img.paste(bordered_img, (190, 450), bordered_img)
     except:
         pass  # Skip thumbnail if failed
 
-    # Add track info below thumbnail
-    draw.text((100, 1300), f"{track_name}", fill="white", font=font_medium)
-    draw.text((100, 1380), f"by {artist_name}", fill="white", font=font_small)
+    # Centered Track Info
+    track_text = f"{track_name}"
+    artist_text = f"by {artist_name}"
+    bbox1 = draw.textbbox((0, 0), track_text, font=font_song)
+    bbox2 = draw.textbbox((0, 0), artist_text, font=font_artist)
+    w1, _ = bbox1[2] - bbox1[0], bbox1[3] - bbox1[1]
+    w2, _ = bbox2[2] - bbox2[0], bbox2[3] - bbox2[1]
+    draw.text(((img.width - w1) / 2, 1250), track_text, fill="white", font=font_song)
+    draw.text(((img.width - w2) / 2, 1360), artist_text, fill="white", font=font_artist)
 
-    # Branding
-    draw.text((50, 1800), "Made with Moodify", fill="white", font=font_small)
+    # Branding at the bottom
+    branding = "Made with Moodify"
+    bbox3 = draw.textbbox((0, 0), branding, font=font_small)
+    w3, _ = bbox3[2] - bbox3[0], bbox3[3] - bbox3[1]
+    draw.text(((img.width - w3) / 2, 1800), branding, fill="white", font=font_small)
 
     # Save to BytesIO buffer
     buf = BytesIO()
