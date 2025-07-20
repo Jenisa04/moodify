@@ -3,8 +3,6 @@
 **Moodify** is an AI-powered web app that detects your mood from a photo and curates a custom YouTube Music playlist to match your vibe.  
 It’s fast, fun, and perfect for sharing on Instagram with friends! 📸✨  
 
-![Moodify Banner](https://i.imgur.com/placeholder.png) <!-- (Add a cool banner image if you want) -->
-
 ---
 
 ## 🌟 Features
@@ -17,14 +15,7 @@ It’s fast, fun, and perfect for sharing on Instagram with friends! 📸✨
 ---
 
 ## 🚀 Try It Out
-👉 [**Live Demo on Streamlit Cloud**](https://moodify-pic-to-music.streamlit.app/)  
-
----
-
-## 📸 Screenshots
-| Mood Detected | Playlist Example | Shareable Card |
-|---------------|-------------------|----------------|
-| ![Mood](assets/mood.png) | ![Playlist](assets/playlist.png) | ![Card](assets/card.png) |
+👉 [**Live Demo on Streamlit Cloud**](https://moodify-now.streamlit.app/)
 
 ---
 
